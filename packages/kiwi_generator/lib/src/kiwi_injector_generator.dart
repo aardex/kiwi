@@ -2,7 +2,7 @@ import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
-import 'package:build/src/builder/build_step.dart';
+import 'package:build/src/build_step.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:dart_style/dart_style.dart';
@@ -11,26 +11,30 @@ import 'package:kiwi_generator/src/model/kiwi_generator_error.dart';
 import 'package:kiwi_generator/src/util/list_extensions.dart';
 import 'package:source_gen/source_gen.dart';
 
-const TypeChecker _registerTypeChecker = TypeChecker.fromRuntime(Register);
+const TypeChecker _registerTypeChecker =
+    TypeChecker.fromUrl('package:kiwi/src/annotations.dart#Register');
 
-bool _isRegisterMethod(MethodElement method) =>
+bool _isRegisterMethod(MethodElement method, TypeChecker registerTypeChecker) =>
     (method.returnType is VoidType &&
-        _registerTypeChecker.hasAnnotationOfExact(method));
+        registerTypeChecker.hasAnnotationOfExact(method));
 
 class KiwiInjectorGenerator extends Generator {
   const KiwiInjectorGenerator();
 
   @override
   String? generate(LibraryReader library, BuildStep? buildStep) {
+    const registerTypeChecker =
+        TypeChecker.fromUrl('package:kiwi/src/annotations.dart#Register');
     try {
       // An injector is an abstract class where all abstract methods are
       // annotated with Register.
       final injectors = library.classes
           .where((c) =>
               c.isAbstract &&
-              c.methods.where((m) => m.isAbstract).isNotEmpty &&
-              c.methods
-                  .where((m) => m.isAbstract && _isRegisterMethod(m))
+              (c as dynamic).methods.where((m) => m.isAbstract).isNotEmpty &&
+              (c as dynamic).methods
+                  .where((m) =>
+                      m.isAbstract && _isRegisterMethod(m, registerTypeChecker))
                   .isNotEmpty)
           .toList();
 
@@ -39,10 +43,11 @@ class KiwiInjectorGenerator extends Generator {
       }
       final file = Library((lb) => lb
         ..body.addAll(
-            injectors.map((i) => _generateInjector(i, library, buildStep))));
+            injectors.map((i) => _generateInjector(i, library, buildStep, registerTypeChecker))));
 
       final DartEmitter emitter = DartEmitter(allocator: Allocator());
-      return DartFormatter().format('${file.accept(emitter)}');
+      return DartFormatter(languageVersion: DartFormatter.latestLanguageVersion)
+          .format('${file.accept(emitter)}');
     } catch (e) {
       if (e is KiwiGeneratorError || e is UnresolvedAnnotationException) {
         rethrow;
@@ -57,27 +62,31 @@ class KiwiInjectorGenerator extends Generator {
     }
   }
 
-  Class _generateInjector(
-      ClassElement injector, LibraryReader library, BuildStep? buildStep) {
+  Class _generateInjector(ClassElement injector, LibraryReader library,
+      BuildStep? buildStep, TypeChecker registerTypeChecker) {
     return Class((cb) => cb
       ..name = '_\$${injector.name}'
-      ..extend = refer(injector.name)
-      ..methods.addAll(_generateInjectorMethods(injector)));
+      ..extend = refer(injector.name ?? '')
+      ..methods.addAll(_generateInjectorMethods(injector, registerTypeChecker)));
   }
 
-  List<Method> _generateInjectorMethods(ClassElement injector) {
+  List<Method> _generateInjectorMethods(
+      ClassElement injector, TypeChecker registerTypeChecker) {
     return injector.methods
         .where((m) => m.isAbstract)
-        .map((m) => _generateInjectorMethod(m))
+        .map((m) => _generateInjectorMethod(m, registerTypeChecker))
         .toList();
   }
 
-  Method _generateInjectorMethod(MethodElement method) {
-    if (method.parameters.length > 1) {
+  Method _generateInjectorMethod(
+      MethodElement method, TypeChecker registerTypeChecker) {
+    final methodParameters = (method as dynamic).parameters as List;
+
+    if (methodParameters.length > 1) {
       throw KiwiGeneratorError(
-          'Only 1 parameter is supported `KiwiContainer scopedContainer`, ${method.name} contains ${method.parameters.length} param(s)');
+          'Only 1 parameter is supported `KiwiContainer scopedContainer`, ${method.name} contains ${methodParameters.length} param(s)');
     }
-    final scopedContainerParam = method.parameters.singleOrNullWhere(
+    final scopedContainerParam = methodParameters.singleOrNullWhere(
       (element) =>
           element.name == 'scopedContainer' &&
           element.type.getDisplayString(withNullability: true) ==
@@ -90,7 +99,7 @@ class KiwiInjectorGenerator extends Generator {
         if (scopedContainerParam.isOptional) {
           mb.optionalParameters = ListBuilder<Parameter>([
             Parameter((builder) => builder
-              ..name = scopedContainerParam.name
+              ..name = scopedContainerParam.name ?? ''
               ..named = scopedContainerParam.isNamed
               ..required = scopedContainerParam.isRequiredNamed
               ..defaultTo = Code('null')
@@ -99,7 +108,7 @@ class KiwiInjectorGenerator extends Generator {
         } else {
           mb.requiredParameters = ListBuilder<Parameter>([
             Parameter((builder) => builder
-              ..name = scopedContainerParam.name
+              ..name = scopedContainerParam.name ?? ''
               ..named = scopedContainerParam.isNamed
               ..required = scopedContainerParam.isRequiredNamed
               ..defaultTo = Code('null')
@@ -107,11 +116,11 @@ class KiwiInjectorGenerator extends Generator {
           ]);
         }
         scopedContainer = '${scopedContainerParam.name} ?? ';
-      } else if (method.parameters.isNotEmpty) {
+      } else if (methodParameters.isNotEmpty) {
         throw KiwiGeneratorError(
-            'Only 1 parameter is supported `KiwiContainer scopedContainer`, ${method.name} contains ${method.parameters.length} param(s) and `KiwiContainer scopedContainer` is not included');
+            'Only 1 parameter is supported `KiwiContainer scopedContainer`, ${method.name} contains ${methodParameters.length} param(s) and `KiwiContainer scopedContainer` is not included');
       }
-      final registers = _generateRegisters(method);
+      final registers = _generateRegisters(method, registerTypeChecker);
       mb
         ..name = method.name
         ..annotations.add(refer('override'));
@@ -127,8 +136,9 @@ class KiwiInjectorGenerator extends Generator {
     });
   }
 
-  Expression? _generateRegisters(MethodElement method) {
-    final annotations = _registerTypeChecker.annotationsOfExact(method);
+  Expression? _generateRegisters(
+      MethodElement method, TypeChecker registerTypeChecker) {
+    final annotations = registerTypeChecker.annotationsOfExact(method);
     return annotations.isEmpty
         ? null
         : annotations.fold<Expression>(
@@ -203,13 +213,13 @@ class KiwiInjectorGenerator extends Generator {
     ConstructorElement constructor,
     Map<DartType?, String?>? resolvers,
   ) {
-    return constructor.parameters
+    return (constructor as dynamic).parameters
         .map((p) => _generateRegisterArgument(p, resolvers))
         .toList();
   }
 
   String _generateRegisterArgument(
-    ParameterElement parameter,
+    dynamic parameter,
     Map<DartType?, String?>? resolvers,
   ) {
     final List<DartType> dartTypes = resolvers == null
@@ -224,7 +234,7 @@ class KiwiInjectorGenerator extends Generator {
     final String nameArgument = dartTypes.isEmpty || resolvers == null
         ? ''
         : "'${resolvers[dartTypes.first]}'";
-    return '${parameter.isNamed ? parameter.name + ': ' : ''}c.resolve<${parameter.type.getDisplayString(withNullability: false)}>($nameArgument)';
+    return '${parameter.isNamed ? (parameter.name ?? '') + ': ' : ''}c.resolve<${parameter.type.getDisplayString(withNullability: false)}>($nameArgument)';
   }
 
   Map<DartType?, String?>? _computeResolvers(
