@@ -11,9 +11,6 @@ import 'package:kiwi_generator/src/model/kiwi_generator_error.dart';
 import 'package:kiwi_generator/src/util/list_extensions.dart';
 import 'package:source_gen/source_gen.dart';
 
-const TypeChecker _registerTypeChecker =
-    TypeChecker.fromUrl('package:kiwi/src/annotations.dart#Register');
-
 bool _isRegisterMethod(MethodElement method, TypeChecker registerTypeChecker) =>
     (method.returnType is VoidType &&
         registerTypeChecker.hasAnnotationOfExact(method));

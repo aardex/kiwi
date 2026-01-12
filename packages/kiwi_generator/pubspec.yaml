@@ -16,7 +16,10 @@ dependencies:
   code_builder: ^4.11.1
   dart_style: ^3.0.0
   kiwi:
-    path: ../kiwi
+    git:
+      url: https://github.com/aardex/kiwi
+      path: packages/kiwi
+      ref: features/deps_12_01_26
   path: ^1.9.1
   source_gen: ^4.1.1
 
