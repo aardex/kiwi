@@ -16,7 +16,6 @@ Future<LibraryReader> resolveCompilationUnit(String sourceFile) async {
     assetId,
     (resolver) => resolver.libraryFor(assetId),
     packageConfig: packageConfig,
-    readAllSourcesFromFilesystem: true,
   );
 
   return LibraryReader(library);

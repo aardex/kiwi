@@ -130,13 +130,10 @@ class _$Injector extends Injector {
     container
       ..registerFactory((c) => ServiceA())
       ..registerFactory<Service>((c) => ServiceB(c.resolve<ServiceA>()))
-      ..registerFactory(
-        (c) => ServiceB(c.resolve<ServiceA>()),
-        name: 'factoryB',
-      )
-      ..registerFactory(
-        (c) => ServiceC(c.resolve<ServiceA>(), c.resolve<ServiceB>('factoryB')),
-      )
+      ..registerFactory((c) => ServiceB(c.resolve<ServiceA>()),
+          name: 'factoryB')
+      ..registerFactory((c) =>
+          ServiceC(c.resolve<ServiceA>(), c.resolve<ServiceB>('factoryB')))
       ..registerFactory((c) => ServiceC.other(c.resolve<ServiceB>()));
   }
 }
@@ -150,13 +147,10 @@ class _$Injector extends Injector {
     container
       ..registerFactory((c) => ServiceA())
       ..registerFactory<Service>((c) => ServiceB(c.resolve<ServiceA>()))
-      ..registerFactory(
-        (c) => ServiceB(c.resolve<ServiceA>()),
-        name: 'factoryB',
-      )
-      ..registerFactory(
-        (c) => ServiceC(c.resolve<ServiceA>(), c.resolve<ServiceB>('factoryB')),
-      )
+      ..registerFactory((c) => ServiceB(c.resolve<ServiceA>()),
+          name: 'factoryB')
+      ..registerFactory((c) =>
+          ServiceC(c.resolve<ServiceA>(), c.resolve<ServiceB>('factoryB')))
       ..registerFactory((c) => ServiceC.other(c.resolve<ServiceB>()));
   }
 
@@ -189,13 +183,10 @@ class _$Injector extends Injector {
     container
       ..registerSingleton((c) => ServiceA())
       ..registerSingleton<Service>((c) => ServiceB(c.resolve<ServiceA>()))
-      ..registerSingleton(
-        (c) => ServiceB(c.resolve<ServiceA>()),
-        name: 'factoryB',
-      )
-      ..registerSingleton(
-        (c) => ServiceC(c.resolve<ServiceA>(), c.resolve<ServiceB>('factoryB')),
-      )
+      ..registerSingleton((c) => ServiceB(c.resolve<ServiceA>()),
+          name: 'factoryB')
+      ..registerSingleton((c) =>
+          ServiceC(c.resolve<ServiceA>(), c.resolve<ServiceB>('factoryB')))
       ..registerSingleton((c) => ServiceC.other(c.resolve<ServiceB>()));
   }
 }
