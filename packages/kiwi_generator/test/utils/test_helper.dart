@@ -12,7 +12,7 @@ Future<void> testKiwi(
   String? output,
 ) async {
   try {
-    String inputFilePath = './test/inputs/$fileName.dart';
+    String inputFilePath = 'test/inputs/$fileName.dart';
 
     final library = await resolveCompilationUnit(inputFilePath);
 
@@ -31,7 +31,7 @@ Future<void> testKiwiException(
   dynamic matcher,
 ) async {
   try {
-    String inputFilePath = './test/inputs/$fileName.dart';
+    String inputFilePath = 'test/inputs/$fileName.dart';
 
     final library = await resolveCompilationUnit(inputFilePath);
 
