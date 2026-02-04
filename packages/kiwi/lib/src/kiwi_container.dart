@@ -84,6 +84,10 @@ class KiwiContainer {
   /// * if you try to unregister a type that was not previously registered.
   ///
   /// Defaults to false.
+  ///
+  /// When [silent] is true, resolving a missing type returns null only if the
+  /// requested type is nullable (e.g. `resolve<MyType?>()`), otherwise an error
+  /// is still thrown.
   bool silent = false;
 
   /// Registers an instance into the container.
@@ -153,13 +157,21 @@ class KiwiContainer {
   T resolve<T>([String? name]) {
     final providers = _providers[name] ?? _ProviderValue.from({});
 
-    if (!silent && !(providers.containsKey(T))) {
-      throw NotRegisteredKiwiError(
-          'Failed to resolve `$T`:\n\nThe type `$T` was not registered${name == null ? '' : ' for the name `$name`'}\n\nMake sure `$T` is added to your KiwiContainer and rerun build_runner build\n(If you are using the kiwi_generator)\n\nWhen using Flutter, most of the time a hot restart is required to setup the KiwiContainer again.');
+    if (!providers.containsKey(T)) {
+      if (silent && null is T) {
+        return null as T;
+      }
+      if (!silent || !(null is T)) {
+        throw NotRegisteredKiwiError(
+            'Failed to resolve `$T`:\n\nThe type `$T` was not registered${name == null ? '' : ' for the name `$name`'}\n\nMake sure `$T` is added to your KiwiContainer and rerun build_runner build\n(If you are using the kiwi_generator)\n\nWhen using Flutter, most of the time a hot restart is required to setup the KiwiContainer again.');
+      }
     }
 
     final value = providers[T]?.get(this);
     if (value == null) {
+      if (silent && null is T) {
+        return null as T;
+      }
       throw NotRegisteredKiwiError(
           'Failed to resolve `$T`:\n\nThe type `$T` was not registered${name == null ? '' : ' for the name `$name`'}\n\nMake sure `$T` is added to your KiwiContainer and rerun build_runner build\n(If you are using the kiwi_generator)\n\nWhen using Flutter, most of the time a hot restart is required to setup the KiwiContainer again.');
     }

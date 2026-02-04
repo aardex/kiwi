@@ -193,7 +193,16 @@ This helps you to prevent potential errors in production, however you might want
 container.silent = true;
 ```
 
-In production, or when `silent` is `true`, you will get `null` if you try to resolve a type that was not previously registered.
+When `silent` is `true`, you will get `null` only if you resolve a nullable type that was not previously registered:
+
+```dart
+final service = container.resolve<MyService?>();
+if (service == null) {
+  // Handle missing registration.
+}
+```
+
+Non-nullable resolves (e.g. `resolve<MyService>()`) still throw to preserve type safety.
 
 ## Changelog
 

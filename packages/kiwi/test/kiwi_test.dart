@@ -117,6 +117,11 @@ void main() {
           isNot(same(container.resolve<Character>())));
     });
 
+    test('missing nullable resolves return null', () {
+      expect(container.resolve<int?>(), isNull);
+      expect(container.resolve<int?>('named'), isNull);
+    });
+
     test('one time builders should be resolved', () {
       container.registerSingleton((c) => 5);
       container.registerSingleton(
