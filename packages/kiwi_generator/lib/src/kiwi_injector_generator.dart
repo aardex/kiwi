@@ -80,7 +80,7 @@ class KiwiInjectorGenerator extends Generator {
     final scopedContainerParam = method.parameters.singleOrNullWhere(
       (element) =>
           element.name == 'scopedContainer' &&
-          element.type.getDisplayString(withNullability: true) ==
+          element.type.getDisplayString(withNullability: false) ==
               'KiwiContainer',
     );
 

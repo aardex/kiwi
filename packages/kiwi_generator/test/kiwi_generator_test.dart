@@ -12,6 +12,13 @@ void main() async {
       );
     });
 
+    test('nullable scoped container param', () async {
+      await testKiwi(
+        'scoped_container_nullable',
+        _outputScopedContainerNullable,
+      );
+    });
+
     test('complex', () async {
       await testKiwi(
         'complex_factory',
@@ -101,6 +108,16 @@ class _$Injector extends Injector {
       ..registerFactory<Service>((c) => ServiceB())
       ..registerFactory((c) => ServiceA(), name: 'factoryA')
       ..registerFactory<Service>((c) => ServiceB(), name: 'factoryB');
+  }
+}
+''';
+
+const _outputScopedContainerNullable = r'''
+class _$Injector extends Injector {
+  @override
+  void configure(KiwiContainer? scopedContainer) {
+    final KiwiContainer container = scopedContainer ?? KiwiContainer();
+    container..registerFactory((c) => ServiceA());
   }
 }
 ''';
